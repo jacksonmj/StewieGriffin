@@ -35,7 +35,7 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
 import supybot.ircmsgs as ircmsgs
-import json,random,urllib
+import json,random,urllib,re
 
 class Powder(callbacks.PluginRegexp):
 	"""Contains all sorts of random stuff."""
@@ -223,8 +223,9 @@ class Powder(callbacks.PluginRegexp):
 		
 		Returns latest comic number and name."""
 		try:
-			data = utils.web.getUrl("http://dikzak.dyndns.org/cate/latest.php")
-			num = data.split("</a>#")[1].split("<script")[0]
+			data = utils.web.getUrl("http://cate.superdoxin.com/latest.php")
+			num = data.split("</a>#")[1]
+			num = re.match(r"[0-9]+",num).group(0)
 			name = data.split(num)[1].split("</span>")[0]
 			
 			irc.reply("Latest comic id is {} and is titled {}".format(num,name))
