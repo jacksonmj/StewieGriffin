@@ -44,9 +44,9 @@ class Powder(callbacks.PluginRegexp):
 	consolechannel = "##sgoutput"
 	
 	def git(self, irc, msg, args, user, project, branch):
-		"""<username> [project]
+		"""<username> [project] [branch]
 
-		Returns information about a user GitHub Repo. Project argument is optional. Defaults to the-powder-toy if no other arguments are given. There is currently no branch option. Arguments are CaSe-SeNsItIvE"""
+		Returns information about a user GitHub Repo. Project and branch arguments are optional. Defaults to the-powder-toy/master if no other arguments are given. Arguments are CaSe-SeNsItIvE"""
 
 		if(not(branch)):
 			branch="master";
@@ -59,20 +59,20 @@ class Powder(callbacks.PluginRegexp):
 		if user=="doxin":
 			user="dikzak"
 
-		giturl = "https://api.github.com/repos/{}/{}/commits".format(user,project)#,branch)
+		giturl = "https://api.github.com/repos/{}/{}/branches/{}".format(user,project,branch)
 		try:
 			data = json.loads(utils.web.getUrl(giturl))
 		except:
 			try:
 				branch = project
-				project = "the-powder-toy"
-				giturl = "https://api.github.com/repos/{}/{}/commits".format(user,project)#,branch)
+				project = "The-Powder-Toy"
+				giturl = "https://api.github.com/repos/{}/{}/branches/{}".format(user,project,branch)
 				data = json.loads(utils.web.getUrl(giturl))
 			except:
 				irc.error("HTTP 404. Please check and try again.", prefixNick=False)
 				if(self.consolechannel): irc.queueMsg(ircmsgs.privmsg(self.consolechannel, "GIT: Returned 404 on %s:%s"%(user,branch)))
 				return
-		data = data[0]['commit']
+		data = data['commit']['commit']
 
 		data["committer"]["date"] = data["committer"]["date"].split("T")
 		data["message"] = data["message"].replace("\n"," ") 
