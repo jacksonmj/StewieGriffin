@@ -41,7 +41,7 @@ class Powder(callbacks.PluginRegexp):
 	"""Contains all sorts of random stuff."""
 	threaded = True
 	regexps = ['powderSnarfer','forumSnarfer']
-	consolechannel = "##sgoutput"
+	consolechannel = False
 	
 	def git(self, irc, msg, args, user, project, branch):
 		"""<username> [project] [branch]
