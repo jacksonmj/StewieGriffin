@@ -223,10 +223,12 @@ class Powder(callbacks.PluginRegexp):
 		
 		Returns latest comic number and name."""
 		try:
-			data = utils.web.getUrl("http://cate.superdoxin.com/latest.php")
-			num = data.split("</a>#")[1]
-			num = re.match(r"[0-9]+",num).group(0)
-			name = data.split(num)[1].split("</span>")[0]
+			data = utils.web.getUrl("http://cate.superdoxin.com/")
+			match = None
+			for match in re.finditer(r" href='view.php\?file=([0-9]+)([^']+)'", data):
+				pass
+			num = match.group(1)
+			name = match.group(2)
 			
 			irc.reply("Latest comic id is {} and is titled {}".format(num,name))
 		except:
