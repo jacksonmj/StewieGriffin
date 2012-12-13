@@ -112,18 +112,21 @@ class Powder(callbacks.PluginRegexp):
 	browse = wrap(browse,['somethingWithoutSpaces',optional('text')])
 
 	def powderSnarfer(self, irc, msg, match):
-		r"http://powdertoy.co.uk/Browse/View.html\?ID=[0-9]+|^[~][0-9]+"
-		self.log.info("powderSnarfer - URL Found")
-		self._getSaveInfo(irc, match.group(0), 1)
+		r"http://powdertoy.co.uk/Browse/View.html\?ID=([0-9]+)|^[~]([0-9]+)|http://tpt.io/~([0-9]+)|http://powdertoy.co.uk/~([0-9]+)"
+		ID = match.group(1) or match.group(2) or match.group(3) or match.group(4) 
+
+		if msg.args[1].startswith("Save "+ID+" is"):
+			return # Don't respond to save info from other bots with this plugin
+
+		self.log.info("powderSnarfer - save URL Found "+match.group(0))
+		if(match.group(0)[0]=="~"):
+			self._getSaveInfo(irc, ID, 0)
+		else:
+			self._getSaveInfo(irc, ID, 1)
+			
 	powderSnarfer = urlSnarfer(powderSnarfer)
 
 	def _getSaveInfo(self, irc, ID, urlGiven):
-		if ID[0]=="h" or ID[0]=="p":
-			ID = (ID.split("="))[1]
-		elif ID[0]=="~":
-			ID=ID[1:]
-			urlGiven=False
-
 		data = json.loads(utils.web.getUrl("http://powdertoy.co.uk/Browse/View.json?ID="+ID))
 		if(data["Username"]=="FourOhFour"):
 			saveMsg = "Save "+ID+" doesn't exist."
@@ -155,19 +158,18 @@ class Powder(callbacks.PluginRegexp):
 	frontpage = wrap(frontpage)
 
 	def forumSnarfer(self,irc,msg,match):
-		r"http://powdertoy[.]co[.]uk/Discussions/Thread/View[.]html[?]Thread=[0-9]+"
-		threadNum = match.group(0).split("Thread=")
+		r"http://powdertoy[.]co[.]uk/Discussions/Thread/View[.]html[?]Thread=([0-9]+)|http://tpt.io/:([0-9]+)"
+		threadNum = match.group(1) or match.group(2)
 		self.log.info("Forum thread found.")
 
-		data = json.loads(utils.web.getUrl("http://powdertoy.co.uk/Discussions/Thread/View.json?Thread=%s"%(threadNum[1])))
+		data = json.loads(utils.web.getUrl("http://powdertoy.co.uk/Discussions/Thread/View.json?Thread=%s"%(threadNum)))
 		cg = data["Info"]["Category"]
 		tp = data["Info"]["Topic"]
 
 		irc.reply("Forum post is \"%s\" in the %s section, posted by %s and has %s replies. Last post was by %s at %s"%
 				(tp["Title"],cg["Name"],tp["Author"],tp["PostCount"]-1,tp["LastPoster"],tp["Date"]),prefixNick=False)
-		if(self.consolechannel): irc.queueMsg(ircmsgs.privmsg(self.consolechannel, "FORUMSNARF: Thread %s found. %s in the %s section"%(threadNum[1],tp["Title"],cg["Name"])))
+		if(self.consolechannel): irc.queueMsg(ircmsgs.privmsg(self.consolechannel, "FORUMSNARF: Thread %s found. %s in the %s section"%(threadNum,tp["Title"],cg["Name"])))
 	forumSnarfer = urlSnarfer(forumSnarfer)
-
 
 	def profile(self, irc, msg, args, user):
 		"""<username|ID>
