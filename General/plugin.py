@@ -321,8 +321,11 @@ class General(callbacks.PluginRegexp):
 		url="http://www.youtube.com/watch?v="+url
 
 		data = utils.web.getUrl(url)
-#	data = data.split("&#x202a;")[1].split("&#x202c;")[0]
-		data = data.split('<title>')[1].split('</title>')[0].split('\n')[1].strip()
+		data = data.split('<title>')[1].split('</title>')[0]
+		ending = "- YouTube"
+		if data.endswith(ending):
+			data = data[:-len(ending)]
+		data = data.strip()
 
 		data = data.replace("&quot;","\'").replace("&#39;", "'").replace("&amp;","&")	
 
