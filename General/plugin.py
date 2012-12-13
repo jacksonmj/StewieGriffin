@@ -231,8 +231,11 @@ class General(callbacks.PluginRegexp):
 
 		try:
 			def f():
-				self.annoyUser.pop(self.annoyUser.index(nick.lower()))
-				self.log.info('ANNOY -> No longer annoying {}'.format(nick))
+				try:
+					self.annoyUser.pop(self.annoyUser.index(nick.lower()))
+					self.log.info('ANNOY -> No longer annoying {}'.format(nick))
+				except:
+					self.log.info('ANNOY -> Expired for {}'.format(nick))
 			schedule.addEvent(f,expires)
 		except:
 			irc.error("I borked.")
@@ -241,6 +244,19 @@ class General(callbacks.PluginRegexp):
 		self.log.info('ANNOY -> Annoying {} for {} minutes'.format(nick,mins))
 		self.annoyUser+=[nick.lower()]
 	annoy = wrap(annoy,['op','nickInChannel',optional('float')])
+
+	def unannoy(self,irc,msg,args,channel,nick):
+		"""[channel] <nick>
+
+		Stops annoying someone."""
+
+		try:
+			self.annoyUser.pop(self.annoyUser.index(nick.lower()))
+			self.log.info('ANNOY -> No longer annoying {}'.format(nick))
+		except:
+			irc.error("That user isn't being annoyed.")
+			return 0
+	unannoy = wrap(unannoy,['op','nick'])
 
 	def justme(self,irc,msg,args,url):
 		"""<url>
