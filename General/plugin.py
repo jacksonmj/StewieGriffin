@@ -34,8 +34,8 @@ class General(callbacks.PluginRegexp):
 	regexps=['selfCorrect','saveLast','greeter','awayMsgKicker','ytSnarfer','pasteSnarfer']
 
 	#Set to false to disable.
-	consolechannel = "##sgoutput"
-	ownerNick = "Xenocide"
+	consolechannel = False
+	ownerNick = "jacksonmj"
 	buffer={}
 	buffsize = 10
 	alpha=[]
