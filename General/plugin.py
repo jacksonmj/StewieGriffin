@@ -35,6 +35,7 @@ class General(callbacks.PluginRegexp):
 
 	#Set to false to disable.
 	consolechannel = "##sgoutput"
+	ownerNick = "Xenocide"
 	buffer={}
 	buffsize = 10
 	alpha=[]
@@ -172,7 +173,7 @@ class General(callbacks.PluginRegexp):
 	def report(self,irc,msg,args,user,reason):
 		"""<User> <reason>
 
-		Reports a user to Xenocide for him to act on when he comes back from afk or [NotHere]."""
+		Reports a user to the owner to be acted on when they come back from afk."""
 		t = time.localtime()
 
 		if int(t[2]) < 10: date = '0{0}'.format(t[2])
@@ -185,20 +186,18 @@ class General(callbacks.PluginRegexp):
 		else: h = str(t[3])
 
 		logFile = '#powder.{0}-{1}-{2}.log'.format(date,month,t[0])
-	#	irc.queueMsg(ircmsgs.privmsg('[NotHere]','User {0} has reported {1} for {2}. Log file is {3} and log time will be around {4}{5}'.format(msg.nick,user,reason,logFile,h,t[4])))
-	#	irc.queueMsg(ircmsgs.privmsg('Xenocide','User {0} has reported {1} for {2}. Log file is {3} and log time will be around {4}{5}'.format(msg.nick,user,reason,logFile,h,t[4])))
-		irc.queueMsg(ircmsgs.privmsg('Memoserv','SEND Xenocide User {0} has reported {1} in {6} for {2}. Log file is {3} and log time will be around {4}{5}'.format(msg.nick,user,reason,logFile,h,t[4],msg.args[0])))
+		irc.queueMsg(ircmsgs.privmsg('Memoserv','SEND {7} User {0} has reported {1} in {6} for {2}. Log file is {3} and log time will be around {4}{5}'.format(msg.nick,user,reason,logFile,h,t[4],msg.args[0],self.ownerNick)))
 		irc.replySuccess('Report sent.')
 	report = wrap(report,['nick','text'])
 
-	def bug(self,irc,msg,args,cmd):
-		"""<plugin>
+	def bug(self,irc,msg,args,cmd,txt):
+		"""<plugin> [details of bug]
 
-		Use this command when Stewie has a bug. It places a note in the logs and sends Xenocide a message."""
-		self.log.error("****Error in {} reported by {}****".format(cmd,msg.nick))
-		irc.queueMsg(ircmsgs.privmsg('Memoserv','SEND Xenocide Bug found in {} by {}.'.format(cmd,msg.nick)))
+		Use this command when Stewie has a bug. It places a note in the logs and sends the owner a message."""
+		self.log.error("****Error in {} reported by {}: {}****".format(cmd,msg.nick,txt))
+		irc.queueMsg(ircmsgs.privmsg('Memoserv','SEND {} Bug found in {} by {} ({}).'.format(self.ownerNick,cmd,msg.nick,txt)))
 		irc.replySuccess("Bug reported.")
-	bug = wrap(bug,['something'])
+	bug = wrap(bug,['something', additional('text')])
 
 	def kicked(self,irc,args,channel,nick):
 		"""[user]

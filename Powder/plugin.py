@@ -232,7 +232,7 @@ class Powder(callbacks.PluginRegexp):
 			
 			irc.reply("Latest comic id is {} and is titled {}".format(num,name))
 		except:
-			irc.error("Xenocide barfed in notepad. Use $bug comic to notify him")
+			irc.error("Comic checker is broken, use $bug comic")
 	comic = wrap(comic)
 Class = Powder
 
