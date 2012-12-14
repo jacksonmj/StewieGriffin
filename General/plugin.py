@@ -31,7 +31,7 @@ class General(callbacks.PluginRegexp):
 #	regexps=['capsKick','selfCorrect','userCorrect','saveLast','greeter','awayMsgKicker','ytSnarfer','pasteSnarfer']
 
 #Remove from this array to disable any regexps
-	regexps=['selfCorrect','saveLast','greeter','awayMsgKicker','ytSnarfer','pasteSnarfer']
+	regexps=['saveLast','greeter','awayMsgKicker','ytSnarfer','pasteSnarfer']
 
 	#Set to false to disable.
 	consolechannel = False
