@@ -56,7 +56,7 @@ conf.registerGlobalValue(Insult, 'allowFoul',
     registry.Boolean(True, """Determines whether to include foul language in
     pools of randomly chosen adjective, amount and noun words."""))
 conf.registerGlobalValue(Insult, 'nouns',
-    registry.SpaceSeparatedListOfStrings( ['bat toenails', 'bug spit',
+    registry.CommaSeparatedListOfStrings( ['bat toenails', 'bug spit',
     'cat hair', 'fish heads', 'gunk', 'pond scum', 'rat retch',
     'red dye number-9', 'Sun IPC manuals', 'waffle-house grits', 'yoo-hoo',
     'snap whippers', 'squirrel guts', 'snake bait', 'buzzard gizzards', 'cat-hair-balls',
@@ -65,23 +65,23 @@ conf.registerGlobalValue(Insult, 'nouns',
     'craptacular carpet droppings', 'cold sores', 'IE user'],
     """Determines the base set of words used as the pool for nouns."""))
 conf.registerGlobalValue(Insult, 'foulNouns',
-    registry.SpaceSeparatedListOfStrings( ['chicken piss', 'dog vomit',
+    registry.CommaSeparatedListOfStrings( ['chicken piss', 'dog vomit',
     'dung', 'fat woman\'s stomach-bile', 'guano', 'dog balls', 'seagull puke',
     'cat bladders', 'pus', 'urine samples', 'snake assholes', 'rat-farts',
     'slurpee-backwash', 'jizzum', 'anal warts'],
     """Determines the set of foul words added to the pool of nouns."""))
 conf.registerGlobalValue(Insult, 'amounts',
-    registry.SpaceSeparatedListOfStrings(['accumulation', 'bucket', 'gob',
+    registry.CommaSeparatedListOfStrings(['accumulation', 'bucket', 'gob',
     'coagulation', 'half-mouthful', 'heap', 'mass', 'mound', 'petrification',
     'pile', 'puddle', 'stack', 'thimbleful', 'tongueful', 'ooze', 'quart',
     'bag', 'plate'],
     """Determines the base set of words used as the pool for amounts."""))
 conf.registerGlobalValue(Insult, 'foulAmounts',
-    registry.SpaceSeparatedListOfStrings(['enema-bucketful', 'ass-full',
+    registry.CommaSeparatedListOfStrings(['enema-bucketful', 'ass-full',
     'assload', 'turnip truck-load'], """Determines the set of foul words added to the pool of
     amounts."""))
 conf.registerGlobalValue(Insult, 'adjectives',
-    registry.SpaceSeparatedListOfStrings( ['acidic', 'antique',
+    registry.CommaSeparatedListOfStrings( ['acidic', 'antique',
     'contemptible', 'sap-headed', 'culturally-unsound', 'despicable', 'evil', 'fermented',
     'knuckle-dragging', 'festering', 'foul', 'fulminating', 'humid', 'impure', 'inept',
     'inferior', 'industrial', 'left-over', 'low-quality', 'off-color',
@@ -107,7 +107,7 @@ conf.registerGlobalValue(Insult, 'adjectives',
     'Microsoft-loving'], """Determines the base set of words used as the pool
     for adjectives."""))
 conf.registerGlobalValue(Insult, 'foulAdjectives',
-    registry.SpaceSeparatedListOfStrings(['pignutted', 'pox-marked', 'rank',
+    registry.CommaSeparatedListOfStrings(['pignutted', 'pox-marked', 'rank',
     'malodorous', 'penguin-molesting', 'coughed-up', 'hacked-up', 'rump-fed',
     'boil-brained'], """Determines the set of foul words added to the pool of
     adjectives."""))
