@@ -106,7 +106,16 @@ class Timebomb(callbacks.Plugin):
         def cutwire(self, irc, cutWire):
             self.cutWire = cutWire
             self.responded = True
-            if self.goodWire.lower() == self.cutWire.lower():
+            specialWires = False
+            if self.rng.randint(1,len(self.wires)) == 1:
+                specialWires = True
+            if self.cutWire.lower() == 'potato' and specialWires:
+                self.irc.queueMsg(ircmsgs.privmsg(self.channel, '%s has turned the bomb into a potato! This has rendered it mostly harmless, and slightly %s.' % (self.victim, self.goodWire)))
+                self.defuse()
+            elif self.cutWire.lower() == 'pizza' and specialWires:
+                self.irc.queueMsg(ircmsgs.privmsg(self.channel, '%s has turned the bomb into a pizza! %s\'s pants have been ruined by the pizza stuffed into them, but at least they haven\'t exploded.' % (self.victim, self.victim)))
+                self.defuse()
+            elif self.goodWire.lower() == self.cutWire.lower():
                 self.irc.queueMsg(ircmsgs.privmsg(self.channel, '%s has cut the %s wire!  This has defused the bomb!' % (self.victim, self.cutWire)))
                 self.irc.queueMsg(ircmsgs.privmsg(self.channel, 'He then quickly rearms the bomb and throws it back at %s with just seconds on the clock!' % self.sender))
                 self.victim = self.sender
