@@ -96,6 +96,13 @@ class Timebomb(callbacks.Plugin):
                 time.sleep(1)
                 self.cutwire(self.irc, cutWire)
 
+        def defuse(self):
+            if not self.active:
+                return
+            self.active = False
+            self.thrown = False
+            schedule.removeEvent('%s_bomb' % self.channel)
+
         def cutwire(self, irc, cutWire):
             self.cutWire = cutWire
             self.responded = True
@@ -104,7 +111,7 @@ class Timebomb(callbacks.Plugin):
                 self.irc.queueMsg(ircmsgs.privmsg(self.channel, 'He then quickly rearms the bomb and throws it back at %s with just seconds on the clock!' % self.sender))
                 self.victim = self.sender
                 self.thrown = True
-                schedule.rescheduleEvent('%s_bomb' % self.channel, time.time() + 5)
+                schedule.rescheduleEvent('%s_bomb' % self.channel, time.time() + 10)
                 if self.victim == irc.nick:
                     time.sleep(1)
                     self.irc.queueMsg(ircmsgs.privmsg(self.channel, '@duck'))
@@ -117,9 +124,7 @@ class Timebomb(callbacks.Plugin):
         def duck(self, irc, ducker):
             if self.thrown and ircutils.nickEqual(self.victim, ducker):
                 self.irc.queueMsg(ircmsgs.privmsg(self.channel, '%s ducks!  The bomb misses, and explodes harmlessly a few meters away.' % self.victim))
-                self.active = False
-                self.thrown = False
-                schedule.removeEvent('%s_bomb' % self.channel)
+                self.defuse()
 
         def detonate(self, irc):
             self.active = False
@@ -216,7 +221,7 @@ class Timebomb(callbacks.Plugin):
         wires = self.rng.sample(colors, wireCount)
         goodWire = self.rng.choice(wires)
         self.log.info("TimeBomb: Safewire is %s"%goodWire)
-        irc.queueMsg(ircmsgs.privmsg("##sgoutput", "TIMEBOMB: Safe wire is %s"%goodWire))
+        # irc.queueMsg(ircmsgs.privmsg("##sgoutput", "TIMEBOMB: Safe wire is %s"%goodWire))
         self.bombs[channel] = self.Bomb(irc, victim, wires, detonateTime, goodWire, channel, msg.nick, self.registryValue('showArt', msg.args[0]), self.registryValue('showCorrectWire', msg.args[0]), self.registryValue('debug'))
         try:
             irc.noReply()
@@ -239,7 +244,7 @@ class Timebomb(callbacks.Plugin):
                 return
         except KeyError:
             pass
-        if victim == irc.nick and not self.registryValue('allowSelfBombs', msg.args[0]):
+        if victim.lower() == irc.nick.lower() and not self.registryValue('allowSelfBombs', msg.args[0]):
             irc.reply('You really expect me to bomb myself?  Stuffing explosives into my own pants isn\'t exactly my idea of fun.')
             return
         victim = string.lower(victim)
@@ -260,7 +265,7 @@ class Timebomb(callbacks.Plugin):
         wires = self.rng.sample(colors, wireCount)
         goodWire = self.rng.choice(wires)
         self.log.info("TimeBomb: Safewire is %s"%goodWire)
-        irc.queueMsg(ircmsgs.privmsg("##sgoutput", "TIMEBOMB: Safe wire is %s"%goodWire))
+        # irc.queueMsg(ircmsgs.privmsg("##sgoutput", "TIMEBOMB: Safe wire is %s"%goodWire))
         if self.registryValue('debug'):
             irc.reply('I\'m about to create a bomb in %s' % channel)
         self.bombs[channel] = self.Bomb(irc, victim, wires, detonateTime, goodWire, channel, msg.nick, self.registryValue('showArt', msg.args[0]), self.registryValue('showCorrectWire', msg.args[0]), self.registryValue('debug'))
@@ -301,6 +306,19 @@ class Timebomb(callbacks.Plugin):
                 irc.reply('List of bombs: %s' % self.bombs.keys())
         irc.noReply()
     detonate = wrap(detonate, [('checkChannelCapability', 'op')])
+
+    def defuse(self, irc, msg, args, channel):
+        """Takes no arguments
+
+        Defuses the active bomb (channel ops only)"""
+        channel = ircutils.toLower(channel)
+        try:
+            self.bombs[channel].defuse()
+            irc.reply('Bomb defused')
+        except KeyError:
+            pass
+            irc.noReply()
+    defuse = wrap(defuse, [('checkChannelCapability', 'op')])
 
 
 Class = Timebomb
