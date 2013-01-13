@@ -118,8 +118,8 @@ class General(callbacks.PluginRegexp):
 
 	def geoip(self,irc,msg,args,ohostmask):
 		ohostmask = ohostmask.split('@')[1]
-		if msg.nick.lower() in ohostmask:
-			irc.reply('Unable to locate IP - User cloak detected'%ohostmask)
+		if '/' in ohostmask:
+			irc.reply('Unable to locate IP - user cloak detected')
 			return None
 
 		ipre = re.compile(r"[0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]")
@@ -160,8 +160,8 @@ class General(callbacks.PluginRegexp):
 		lon = info[21]
 		provider = info[11]
 
-		if 'EUKHOST LTD' in provider:
-			irc.reply("Unable to locate IP - Not found")
+		if 'n/a' == city.strip():
+			irc.reply("Unable to locate IP - not found")
 			return None
 
 		tinyurl=utils.web.getUrl('http://tinyurl.com/api-create.php?url=http://maps.google.com/maps?q=%s,%s'%(lat,lon))
