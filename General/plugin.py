@@ -119,12 +119,13 @@ class General(callbacks.PluginRegexp):
 
 	def geoip(self,irc,msg,args,ohostmask):
 		ohostmask = ohostmask.split('@')[1]
-		if '/' in ohostmask:
+		ipre = re.compile(r"[0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]")
+		hostmask = ipre.search(ohostmask)
+
+		if '/' in ohostmask and not hostmask:
 			irc.reply('Unable to locate IP - user cloak detected')
 			return None
 
-		ipre = re.compile(r"[0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]")
-		hostmask = ipre.search(ohostmask)
 		if hostmask:
 			try:		
 				hostmask = hostmask.group(0)
@@ -151,17 +152,17 @@ class General(callbacks.PluginRegexp):
 				info+=[data[x]]
 			x+=1
 
-		country = info[20]
-		city = info[5]
-		tz = info[27]
-		to = info[30]
+		country = info[20].strip()
+		city = info[5].strip()
+		tz = info[27].strip()
+		to = info[30].strip()
 		if '-' not in to:
 			to = '+%s'%to
-		lat = info[13]
-		lon = info[21]
-		provider = info[11]
+		lat = info[13].strip()
+		lon = info[21].strip()
+		provider = info[11].strip()
 
-		if 'n/a' == city.strip():
+		if 'n/a' == city:
 			irc.reply("Unable to locate IP - not found")
 			return None
 
