@@ -20,6 +20,7 @@ import supybot.ircutils as ircutils
 import supybot.callbacks as callbacks
 
 import re,time,json,random
+import socket
 import supybot.ircmsgs as ircmsgs
 import supybot.schedule as schedule
 
@@ -264,9 +265,11 @@ class General(callbacks.PluginRegexp):
 		Checks if a website is up or down (using isup.me)"""
 		try: url = url.split("//")[1]
 		except: pass
+		socket.setdefaulttimeout(60)
 		data = utils.web.getUrl('http://isup.me/{}'.format(url))
 		if 'is up.' in data: irc.reply("It's just you.")
 		elif 'looks down' in data: irc.reply("It's down.")
+		elif 'If you can see this page and still think we\'re down, it\'s just you' in data: irc.reply("It's just you.")
 		else: irc.error("Check URL and try again")
 	justme = wrap(justme,(['something']))
 
