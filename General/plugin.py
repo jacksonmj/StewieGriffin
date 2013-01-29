@@ -119,7 +119,7 @@ class General(callbacks.PluginRegexp):
 
 	def geoip(self,irc,msg,args,ohostmask):
 		ohostmask = ohostmask.split('@')[1]
-		ipre = re.compile(r"[0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]")
+		ipre = re.compile(r"[0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]{1,3}")
 		hostmask = ipre.search(ohostmask)
 
 		if '/' in ohostmask and not hostmask:
