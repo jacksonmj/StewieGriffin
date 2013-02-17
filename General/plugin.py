@@ -201,12 +201,15 @@ class General(callbacks.PluginRegexp):
 		irc.replySuccess("Bug reported.")
 	bug = wrap(bug,['something', additional('text')])
 
-	def kicked(self,irc,args,channel,nick):
+	def kicked(self,irc,msg,args,nick):
 		"""[user]
 
 		Shows how many times [user] has been kicked and by who. If [user] isn't provided, it returns infomation based on the caller."""
-		if not nick: ref = msg.nick.lower()
-		else: ref = nick.lower()
+		if nick is None:
+			ref = msg.nick.lower()
+			nick = msg.nick
+		else:
+			ref = nick.lower()
 
 		with open('KCOUNT','r') as f:
 			kickdata = json.load(f)
