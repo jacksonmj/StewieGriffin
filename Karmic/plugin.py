@@ -40,7 +40,7 @@ class Karmic(callbacks.PluginRegexp):
 	threaded = True
 	regexps=['alterKarma']
 
-	powderOps=['facialturd','simon','ximon','xenocide','cracker64','catelite','devast8a','stewiegriffin','doxin','triclops200','frankbro','ief015']
+	powderOps=['jacksonmj','facialturd','ximon','xenocide','cracker64','catelite','devast8a','stewiegriffin','doxin','triclops200','frankbro','ief015']
 
 	def userInChannel(self, irc, user, channel):
 		self.log.info('Finding {0} in {1}'.format(user, channel))
@@ -52,14 +52,17 @@ class Karmic(callbacks.PluginRegexp):
 		return 0
 
 	def alterKarma(self,irc,msg,match):
-		r"^[A-Za-z0-9+-.?!]*([+]{2}|[-]{2})$"
+		r"^[A-Za-z0-9+-.?!|]*([+]{2}|[-]{2})$"
 	#Preemptive double check
 		try: self.karmaCount
 		except: self._loadKarma()
 
-		if msg.nick.lower() not in self.powderOps and msg.nick.lower() not in self.karmaCount['g']:
-			 irc.error('You don\'t have any yarn to give (You don\'t have permission)')
-			 return 0
+		if msg.args[0]=="#powder":
+			irc.error('Giving yarn is disabled in this channel')
+			return
+		#if msg.nick.lower() not in self.powderOps and msg.nick.lower() not in self.karmaCount['g']:
+		#	 irc.error('You don\'t have any yarn to give (You don\'t have permission)')
+		#	 return 0
 
 		match = match.group(0)
 		item = str(match[:-2])
@@ -67,18 +70,27 @@ class Karmic(callbacks.PluginRegexp):
 		self.log.info('Karma -> {0} by {1}'.format(match, msg.nick))
 
 #		if item.lower() in msg.nick.lower():
+#			upOrDown='-'
+#		if item.lower() in msg.nick.lower():
 #			irc.error('No self karma allowed.')
 #			return 0
 
 		if item.lower() in 'rap':
 			upOrDown='-'
 
-#		elif upOrDown is '-':
-#			if ('powdertoy' in item.lower() or 'powder-toy' in item.lower()) or item.lower() in self.powderOps:
-#				item=msg.nick
+		elif upOrDown is '-':
+			if ('powdertoy' in item.lower() or 'tpt' in item.lower() or 'powder-toy' in item.lower()) or item.lower() in self.powderOps:
+				item=msg.nick
+
+		try:
+			if (time.time()-self.karmaCount['t'][msg.nick.lower()])<120:
+				irc.error('You need to wait 2 minutes from your last karmic action before you can use it again.')
+#				irc.error('You need to wait 5 minutes to give more yarn.')
+				return 0
+		except: pass
 
 #		try:
-#			if (time.time()-self.karmaCount['t'][msg.nick.lower()])<300 and 'xeno' not in msg.nick.lower():
+#			if (time.time()-self.karmaCount['it'][item.lower()])<60 and 'xeno' not in msg.nick.lower():
 #				irc.error('You need to wait 1 minute from your last karmic action before you can use it again.')
 #				irc.error('You need to wait 5 minutes to give more yarn.')
 #				return 0
@@ -94,12 +106,12 @@ class Karmic(callbacks.PluginRegexp):
 			try:	self.karmaCount['k'][item.lower()]-=1
 			except: self.karmaCount['k'][item.lower()]=-1
 
-#	self.karmaCount['t'][msg.nick.lower()]=time.time()
+		self.karmaCount['t'][msg.nick.lower()]=time.time()
 
 #		irc.reply('Karma for {0} is {1}.'.format(item,self.karmaCount['k'][item.lower()]),prefixNick=False)
-#		if item.lower() in 'kitty':
- #		   irc.reply('Kitty already has all the yarn =^.^=')
-		if item.lower() in 'doxin':
+		if item.lower() in 'kitty':
+			irc.reply('Kitty already has all the yarn =^.^=')
+		elif item.lower() in 'doxin':
 			irc.reply('Doxin already has all the yarn =^.^=')
 		else:
 			irc.reply('{0} now has {1} ball(s) of yarn.'.format(item,self.karmaCount['k'][item.lower()]),prefixNick=False)
@@ -111,7 +123,7 @@ class Karmic(callbacks.PluginRegexp):
 
 		Displays the current karmic value of \x02<item>\x02"""
 
-	if not item: item=msg.nick
+		if not item: item=msg.nick
 
 		try:	self.karmaCount
 		except: self._loadKarma()
@@ -122,7 +134,9 @@ class Karmic(callbacks.PluginRegexp):
 #		irc.reply('Karma for {0} is {1}.'.format(item,karmic))
 #		if item.lower() in 'kitty':
 #			irc.reply('Kitty has ALL the yarn =^.^=')
-		if item.lower() in 'doxin':
+		if item.lower() in 'kitty':
+			irc.reply('Kitty has ALL the yarn =^.^=')
+		elif item.lower() in 'doxin':
 			irc.reply('Doxin has ALL the yarn =^.^=')
 		else:
 			irc.reply('{0} has {1} ball(s) of yarn.'.format(item,karmic))
@@ -134,7 +148,7 @@ class Karmic(callbacks.PluginRegexp):
 		ohai mniip!"""
 		self._loadKarma()
 		irc.replySuccess()
-	rekarma = wrap(rekarma)
+	rekarma = wrap(rekarma, [('checkCapability', 'admin')])
 
 
 	def giveKarma(self,irc,msg,args,nick):#,isOp):
@@ -151,7 +165,7 @@ class Karmic(callbacks.PluginRegexp):
 			self.karmaCount['g']+=[nick.lower()]
 			self._saveKarma()
 			irc.replySuccess()
-	mkkarma = wrap(giveKarma,['nickInChannel','op'])
+	#mkkarma = wrap(giveKarma,['nickInChannel','op'])
 
 	def takeKarma(self,irc,msg,args,nick):#,isOp):
 		"""<user>
@@ -166,7 +180,7 @@ class Karmic(callbacks.PluginRegexp):
 			self.karmaCount['g'].pop(self.karmaCount['g'].index(nick.lower()))
 			self._saveKarma()
 			irc.replySuccess()
-	rmkarma = wrap(takeKarma,['nickInChannel','op'])
+	#rmkarma = wrap(takeKarma,['nickInChannel','op'])
 
 	def _loadKarma(self):
 		try:
