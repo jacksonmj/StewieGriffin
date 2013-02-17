@@ -201,6 +201,10 @@ class Powder(callbacks.PluginRegexp):
 
 
 	def network(self, irc, msg, args):
+		"""
+		
+		Replies with a link to the github network page for the Powder Toy repo
+		"""
 		irc.reply("https://github.com/facialturd/The-Powder-Toy/network");
 	network = wrap(network)
 
@@ -212,7 +216,7 @@ class Powder(callbacks.PluginRegexp):
 		random.seed(random.random())
 		found = False
 		while found is False:
-			saveID = str(int(random.random()*250000))
+			saveID = str(int(random.random()*1000000))
 			page = json.loads(utils.web.getUrl("http://powdertoy.co.uk/Browse/View.json?ID="+saveID))
 			if(page["Username"]!="FourOhFour"):
 				found = True
