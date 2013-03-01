@@ -231,7 +231,7 @@ class Powder(callbacks.PluginRegexp):
 		try:
 			data = utils.web.getUrl("http://cate.superdoxin.com/")
 			match = None
-			for match in re.finditer(r" href='view.php\?file=([0-9]+)([^']+)'", data):
+			for match in re.finditer(r" href=\"([0-9]+)([^\"]+)\"", data):
 				pass
 			num = match.group(1)
 			name = match.group(2)
