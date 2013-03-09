@@ -231,12 +231,13 @@ class Powder(callbacks.PluginRegexp):
 		try:
 			data = utils.web.getUrl("http://cate.superdoxin.com/")
 			match = None
-			for match in re.finditer(r" href=\"([0-9]+)([^\"]+)\"", data):
+			for match in re.finditer(r" href=\"(([0-9]+)([^\"]+))\"", data):
 				pass
-			num = match.group(1)
-			name = match.group(2)
+			filename = match.group(1)
+			num = match.group(2)
+			name = match.group(3)
 			
-			irc.reply("Latest comic id is {} and is titled {}".format(num,name))
+			irc.reply("Latest comic id is {} and is titled {} - http://cate.superdoxin.com/{}".format(num,name,filename))
 		except:
 			irc.error("Comic checker is broken, use $bug comic")
 	comic = wrap(comic)
