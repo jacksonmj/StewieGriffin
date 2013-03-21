@@ -40,7 +40,7 @@ class Karmic(callbacks.PluginRegexp):
 	threaded = True
 	regexps=['alterKarma']
 
-	powderOps=['jacksonmj','facialturd','ximon','xenocide','cracker64','catelite','devast8a','stewiegriffin','doxin','triclops200','frankbro','ief015']
+	powderOps=['jacksonmj','jacob1','facialturd','ximon','xenocide','cracker64','catelite','devast8a','stewiegriffin','doxin','triclops200','frankbro','ief015']
 
 	def userInChannel(self, irc, user, channel):
 		self.log.info('Finding {0} in {1}'.format(user, channel))
@@ -83,8 +83,8 @@ class Karmic(callbacks.PluginRegexp):
 				item=msg.nick
 
 		try:
-			if (time.time()-self.karmaCount['t'][msg.nick.lower()])<120:
-				irc.error('You need to wait 2 minutes from your last karmic action before you can use it again.')
+			if (time.time()-self.karmaCount['t'][msg.nick.lower()])<60:
+				irc.error('You need to wait 1 minute from your last karmic action before you can use it again.')
 #				irc.error('You need to wait 5 minutes to give more yarn.')
 				return 0
 		except: pass
