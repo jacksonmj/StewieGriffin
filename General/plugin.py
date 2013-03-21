@@ -162,13 +162,17 @@ class General(callbacks.PluginRegexp):
 		lon = info[21].strip()
 		provider = info[11].strip()
 
-		if 'n/a' == city:
+		if 'n/a' == city.lower() and 'n/a' == tz.lower():
 			irc.reply("Unable to locate IP - not found")
 			return None
 
-		tinyurl=utils.web.getUrl('http://tinyurl.com/api-create.php?url=http://maps.google.com/maps?q=%s,%s'%(lat,lon))
+		if lat.lower() != 'n/a' and lon.lower() != 'n/a':
+			tinyurl=utils.web.getUrl('http://tinyurl.com/api-create.php?url=http://maps.google.com/maps?q=%s,%s'%(lat,lon))
+			tinyurlLink=' (%s)'%tinyurl
+		else:
+			tinyurlLink=''
 
-		irc.reply('%s is near %s in %s (%s). The timezone is %s and is UTC/GMT%s. The provider is %s'%(hostmask,city,country,tinyurl,tz,to,provider))
+		irc.reply('%s is near %s in %s%s. The timezone is %s and is UTC/GMT%s. The provider is %s'%(hostmask,city,country,tinyurlLink,tz,to,provider))
 		return None
 	geoip = wrap(geoip, ['hostmask'])
 
@@ -270,7 +274,11 @@ class General(callbacks.PluginRegexp):
 		try: url = url.split("//")[1]
 		except: pass
 		socket.setdefaulttimeout(60)
-		data = utils.web.getUrl('http://isup.me/{}'.format(url))
+		try:
+			data = utils.web.getUrl('http://isup.me/{}'.format(url))
+		except:
+			irc.reply("isup.me seems down.")
+			return
 		if 'is up.' in data: irc.reply("It's just you.")
 		elif 'looks down' in data: irc.reply("It's down.")
 		elif 'If you can see this page and still think we\'re down, it\'s just you' in data: irc.reply("It's just you.")
