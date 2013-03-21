@@ -75,7 +75,7 @@ class Karmic(callbacks.PluginRegexp):
 #			irc.error('No self karma allowed.')
 #			return 0
 
-		if item.lower() in 'rap':
+		if item.lower() == 'rap':
 			upOrDown='-'
 
 		elif upOrDown is '-':
