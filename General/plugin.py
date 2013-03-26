@@ -309,7 +309,7 @@ class General(callbacks.PluginRegexp):
 ###	RegExps	###
 #####################
 	def greeter(self, irc, msg, match):
-		r"^(hello|hi|sup|hey|o?[bh]ai|wa+[sz]+(a+|u+)p?|Bye+|cya+|later[sz]?)[,. ]+(stewi?e?[griffin]?|bot|all|there)"
+		r"^(hello|hi|sup|hey|o?[bh]ai|wa+[sz]+(a+|u+)p?|Bye+|cya+|later[sz]?)[,. ]+(stewi?e?[griffin]?|bot$|all|there)"
 		if "," in match.group(0):
 			hail = match.group(0).split(",")[0]
 		elif "." in match.group(0):
