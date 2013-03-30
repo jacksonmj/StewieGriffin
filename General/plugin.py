@@ -118,7 +118,7 @@ class General(callbacks.PluginRegexp):
 #	stewie = wrap(stewieQuote)
 
 	def geoip(self,irc,msg,args,ohostmask):
-		ohostmask = ohostmask.split('@')[1]
+		ohostmask = ohostmask.split('@')[-1]
 		ipre = re.compile(r"[0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]{1,3}[.-][0-9]{1,3}")
 		hostmask = ipre.search(ohostmask)
 
@@ -174,7 +174,7 @@ class General(callbacks.PluginRegexp):
 
 		irc.reply('%s is near %s in %s%s. The timezone is %s and is UTC/GMT%s. The provider is %s'%(hostmask,city,country,tinyurlLink,tz,to,provider))
 		return None
-	geoip = wrap(geoip, ['hostmask'])
+	geoip = wrap(geoip, ['text'])
 
 	def report(self,irc,msg,args,user,reason):
 		"""<User> <reason>
@@ -309,7 +309,7 @@ class General(callbacks.PluginRegexp):
 ###	RegExps	###
 #####################
 	def greeter(self, irc, msg, match):
-		r"^(hello|hi|sup|hey|o?[bh]ai|wa+[sz]+(a+|u+)p?|Bye+|cya+|later[sz]?)[,. ]+(stewi?e?[griffin]?|bot$|all|there)"
+		r'^(hello|hi|sup|hey|o?[bh]ai|wa+[sz]+(a+|u+)p?|Bye+|cya+|later[sz]?)([,. ]+(stewi?e?(griffin(sub)?)?|bot|all|there|SGS)\b|der$)'
 		if "," in match.group(0):
 			hail = match.group(0).split(",")[0]
 		elif "." in match.group(0):
