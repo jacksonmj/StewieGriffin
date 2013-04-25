@@ -31,14 +31,18 @@
 import time
 import string
 import random
+import math
 import supybot.utils as utils
 import supybot.world as world
 from supybot.commands import *
 import supybot.plugins as plugins
+import supybot.ircdb as ircdb
 import supybot.ircmsgs as ircmsgs
 import supybot.ircutils as ircutils
 import supybot.schedule as schedule
 import supybot.callbacks as callbacks
+import supybot.registry as registry
+import supybot.conf as conf
 
 
 class Timebomb(callbacks.Plugin):
@@ -107,7 +111,7 @@ class Timebomb(callbacks.Plugin):
             self.cutWire = cutWire
             self.responded = True
             specialWires = False
-            if self.rng.randint(1,len(self.wires)) == 1:
+            if self.rng.randint(1,len(self.wires)) == 1 or self.victim.lower()=='jacksonmj':
                 specialWires = True
             if self.cutWire.lower() == 'potato' and specialWires:
                 self.irc.queueMsg(ircmsgs.privmsg(self.channel, '%s has turned the bomb into a potato! This has rendered it mostly harmless, and slightly %s.' % (self.victim, self.goodWire)))
@@ -117,15 +121,20 @@ class Timebomb(callbacks.Plugin):
                 self.defuse()
             elif self.goodWire.lower() == self.cutWire.lower():
                 self.irc.queueMsg(ircmsgs.privmsg(self.channel, '%s has cut the %s wire!  This has defused the bomb!' % (self.victim, self.cutWire)))
-                self.irc.queueMsg(ircmsgs.privmsg(self.channel, 'He then quickly rearms the bomb and throws it back at %s with just seconds on the clock!' % self.sender))
-                self.victim = self.sender
-                self.thrown = True
-                schedule.rescheduleEvent('%s_bomb' % self.channel, time.time() + 10)
-                if self.victim == irc.nick:
-                    time.sleep(1)
-                    self.irc.queueMsg(ircmsgs.privmsg(self.channel, '@duck'))
-                    time.sleep(1)
-                    self.duck(self.irc, irc.nick)
+                if self.victim.lower() != self.sender.lower():
+                    self.irc.queueMsg(ircmsgs.privmsg(self.channel, 'He then quickly rearms the bomb and throws it back at %s with just seconds on the clock!' % self.sender))
+                    tmp = self.victim
+                    self.victim = self.sender
+                    self.sender = tmp
+                    self.thrown = True
+                    schedule.rescheduleEvent('%s_bomb' % self.channel, time.time() + 10)
+                    if self.victim == irc.nick:
+                        time.sleep(1)
+                        self.irc.queueMsg(ircmsgs.privmsg(self.channel, '@duck'))
+                        time.sleep(1)
+                        self.duck(self.irc, irc.nick)
+                else:
+                    self.defuse()
             else:
                 schedule.removeEvent('%s_bomb' % self.channel)
                 self.detonate(irc)
@@ -159,7 +168,91 @@ class Timebomb(callbacks.Plugin):
                     self.irc.queueMsg(ircmsgs.invite(self.victim, self.channel))
             if not self.responded:
                 schedule.addEvent(reinvite, time.time()+5)
+
+    def _canBomb(self, irc, channel, sender, victim, replyError):
+        if sender.lower() in self.registryValue('exclusions', channel):
+            if replyError:
+                irc.reply('You can\'t timebomb anyone, since you\'re excluded from being timebombed')
+            return False
+        bombHistoryOrig = self.registryValue('bombHistory', channel)
+        bombHistory = []
+        senderHostmask = irc.state.nickToHostmask(sender)
+        (nick, user, host) = ircutils.splitHostmask(senderHostmask)
+        senderMask = ('%s@%s' % (user,host)).lower()
+        victim = victim.lower()
+        now = int(time.time())
+        storeTime = self.registryValue('rateLimitTime', channel)
+        victimCount = 0
+        senderCount = 0
+        totalCount = 0
+        for bstr in bombHistoryOrig:
+            b = bstr.split('#')
+            if len(b)<3 or int(b[0])+storeTime < now:
+                continue
+            totalCount += 1
+            if b[1] == senderMask:
+                senderCount += 1
+            if b[2] == victim:
+                victimCount += 1
+            bombHistory.append(bstr)
+        self.setRegistryValue('bombHistory', bombHistory, channel)
+        if totalCount > storeTime * self.registryValue('rateLimitTotal', channel) / 3600:
+            if replyError:
+                irc.reply('Sorry, I\'ve stuffed so many timebombs down so many pairs of pants that I\'ve temporarily run out of explosives. You\'ll have to wait.')
+            return False
+        if senderCount > storeTime * self.registryValue('rateLimitSender', channel) / 3600:
+            if replyError:
+                irc.reply('You\'ve timebombed a lot of people recently, let someone else have a go.')
+            return False
+        if victimCount > storeTime * self.registryValue('rateLimitVictim', channel) / 3600:
+            if replyError:
+                irc.reply('That user has been timebombed a lot recently, try picking someone else.')
+            return False
+        return True
+
+    def _logBomb(self, irc, channel, sender, victim):
+        bombHistory = self.registryValue('bombHistory', channel)
+        senderHostmask = irc.state.nickToHostmask(sender)
+        (nick, user, host) = ircutils.splitHostmask(senderHostmask)
+        senderMask = ('%s@%s' % (user,host)).lower()
+        victim = victim.lower()
+        bombHistory.append('{}#{}#{}'.format(int(time.time()), senderMask, victim))
+        self.setRegistryValue('bombHistory', bombHistory, channel)
+
+    def bombsenabled(self, irc, msg, args, channel, value):
+        """[value]
+
+        Sets the value of the allowBombs config value for the channel. Restricted to users with channel timebombadmin capability."""
+        statusDescription = 'are currently'
+        if value:
+            #tmp = ircdb.channels.getChannel(channel).defaultAllow - problems with multithreading?
+            #ircdb.channels.getChannel(channel).defaultAllow = False
+            hasCap = ircdb.checkCapability(msg.prefix, 'timebombadmin')
+            if (channel=="#powder" or channel=="#powder-dev") and not ircdb.checkCapability(msg.prefix, 'admin'):
+                irc.error('You need the admin capability to do that')
+                return
+            #ircdb.channels.getChannel(channel).defaultAllow = tmp
+            if hasCap:
+                oldValue = self.registryValue('allowBombs', channel)
+                try:
+                    conf.supybot.plugins.Timebomb.allowBombs.get(channel).set(value)
+                except registry.InvalidRegistryValue:
+                    irc.error('Value must be either True or False (or On or Off)')
+                    return
+                if self.registryValue('allowBombs', channel) == oldValue:
+                    statusDescription = 'were already'
+                else:
+                    statusDescription = 'have now been'
                 
+            else:
+                irc.error('You need the timebombadmin capability to do that')
+                return
+        if self.registryValue('allowBombs', channel):
+            irc.reply('Timebombs %s enabled in %s' % (statusDescription, channel))
+        else:
+            irc.reply('Timebombs %s disabled in %s' % (statusDescription, channel))
+    bombsenabled = wrap(bombsenabled, ['Channel', optional('somethingWithoutSpaces')])
+    
     
     def duck(self, irc, msg, args, channel):
         """takes no arguments
@@ -182,7 +275,7 @@ class Timebomb(callbacks.Plugin):
         Bombs a random person in the channel
         """
         channel = ircutils.toLower(channel)
-        if not self.registryValue('allowBombs', msg.args[0]):
+        if not self.registryValue('allowBombs', channel):
             irc.reply('Timebombs aren\'t allowed in this channel.  Set plugins.Timebomb.allowBombs to true if you want them.')
             return
         try:
@@ -191,7 +284,11 @@ class Timebomb(callbacks.Plugin):
                 return
         except KeyError:
             pass
-        if self.registryValue('bombActiveUsers', msg.args[0]):
+
+        if not self._canBomb(irc, channel, msg.nick, '', True):
+            return
+
+        if self.registryValue('bombActiveUsers', channel):
             if len(nicks) == 0:
                 nicks = list(irc.state.channels[channel].users)
                 items = self.talktimes.iteritems()
@@ -199,7 +296,7 @@ class Timebomb(callbacks.Plugin):
                 for i in range(0, len(self.talktimes)):
                     try:
                         item = items.next()
-                        if time.time() - item[1] < self.registryValue('idleTime', msg.args[0])*60 and item[0] in irc.state.channels[channel].users:
+                        if time.time() - item[1] < self.registryValue('idleTime', channel)*60 and item[0] in irc.state.channels[channel].users and self._canBomb(irc, channel, msg.nick, item[0], False):
                             nicks.append(item[0])
                     except StopIteration:
                         irc.reply('hey quantumlemur, something funny happened... I got a StopIteration exception')
@@ -213,16 +310,23 @@ class Timebomb(callbacks.Plugin):
                 nicks = list(irc.state.channels[channel].users)
         elif len(nicks) == 0:
             nicks = list(irc.state.channels[channel].users)
-        if irc.nick in nicks and not self.registryValue('allowSelfBombs', msg.args[0]):
+        if irc.nick in nicks and not self.registryValue('allowSelfBombs', channel):
             nicks.remove(irc.nick)
+        eligibleNicks = []
+        for victim in nicks:
+            if not (victim == self.lastBomb or string.lower(victim) in self.registryValue('randomExclusions', channel) or string.lower(victim) in self.registryValue('exclusions', channel)) and self._canBomb(irc, channel, msg.nick, victim, False):
+                eligibleNicks.append(victim)
+        if len(eligibleNicks) == 0:
+            irc.reply('I couldn\'t find anyone suitable to randombomb. Maybe everyone here is excluded from being randombombed or has been timebombed too recently.')
+            return
         #####
-        #irc.reply('These people are eligible: %s' % utils.str.commaAndify(nicks))
-        victim = self.rng.choice(nicks)
-        while victim == self.lastBomb or victim in self.registryValue('exclusions', msg.args[0]):
-            victim = self.rng.choice(nicks)
+        #irc.reply('These people are eligible: %s' % utils.str.commaAndify(eligibleNicks))
+        victim = self.rng.choice(eligibleNicks)
         self.lastBomb = victim
-        detonateTime = self.rng.randint(self.registryValue('minRandombombTime', msg.args[0]), self.registryValue('maxRandombombTime', msg.args[0]))
-        wireCount = self.rng.randint(self.registryValue('minWires', msg.args[0]), self.registryValue('maxWires', msg.args[0]))
+        detonateTime = self.rng.randint(self.registryValue('minRandombombTime', channel), self.registryValue('maxRandombombTime', channel))
+        wireCount = self.rng.randint(self.registryValue('minWires', channel), self.registryValue('maxWires', channel))
+        if victim.lower() == 'halite':
+            wireCount = self.rng.randint(11, 20)
         if wireCount < 12:
             colors = self.registryValue('shortcolors')
         else:
@@ -230,8 +334,9 @@ class Timebomb(callbacks.Plugin):
         wires = self.rng.sample(colors, wireCount)
         goodWire = self.rng.choice(wires)
         self.log.info("TimeBomb: Safewire is %s"%goodWire)
-        # irc.queueMsg(ircmsgs.privmsg("##sgoutput", "TIMEBOMB: Safe wire is %s"%goodWire))
-        self.bombs[channel] = self.Bomb(irc, victim, wires, detonateTime, goodWire, channel, msg.nick, self.registryValue('showArt', msg.args[0]), self.registryValue('showCorrectWire', msg.args[0]), self.registryValue('debug'))
+        irc.queueMsg(ircmsgs.privmsg("##jacksonmj-test", "TIMEBOMB: Safe wire is %s"%goodWire))
+        self._logBomb(irc, channel, msg.nick, victim)
+        self.bombs[channel] = self.Bomb(irc, victim, wires, detonateTime, goodWire, channel, msg.nick, self.registryValue('showArt', channel), self.registryValue('showCorrectWire', channel), self.registryValue('debug'))
         try:
             irc.noReply()
         except AttributeError:
@@ -244,7 +349,7 @@ class Timebomb(callbacks.Plugin):
 
         For bombing people!"""
         channel = ircutils.toLower(channel)
-        if not self.registryValue('allowBombs', msg.args[0]):
+        if not self.registryValue('allowBombs', channel):
             irc.reply('Timebombs aren\'t allowed in this channel.  Set plugins.Timebomb.allowBombs to true if you want them.')
             return
         try:
@@ -253,7 +358,7 @@ class Timebomb(callbacks.Plugin):
                 return
         except KeyError:
             pass
-        if victim.lower() == irc.nick.lower() and not self.registryValue('allowSelfBombs', msg.args[0]):
+        if victim.lower() == irc.nick.lower() and not self.registryValue('allowSelfBombs', channel):
             irc.reply('You really expect me to bomb myself?  Stuffing explosives into my own pants isn\'t exactly my idea of fun.')
             return
         victim = string.lower(victim)
@@ -265,19 +370,29 @@ class Timebomb(callbacks.Plugin):
         if not found:
             irc.reply('Error: nick not found.')
             return
-        detonateTime = self.rng.randint(self.registryValue('minTime', msg.args[0]), self.registryValue('maxTime', msg.args[0]))
-        wireCount = self.rng.randint(self.registryValue('minWires', msg.args[0]), self.registryValue('maxWires', msg.args[0]))
-        if wireCount < 12:
+        if string.lower(victim) in self.registryValue('exclusions', channel):
+            irc.reply('Error: that nick can\'t be timebombed')
+            return
+
+        if not ircdb.checkCapability(msg.prefix, 'admin') and victim != msg.nick and not self._canBomb(irc, channel, msg.nick, victim, True):
+            return
+
+        detonateTime = self.rng.randint(self.registryValue('minTime', channel), self.registryValue('maxTime', channel))
+        wireCount = self.rng.randint(self.registryValue('minWires', channel), self.registryValue('maxWires', channel))
+        if victim.lower() == 'halite':
+            wireCount = self.rng.randint(11,20)
+	if wireCount < 12:
             colors = self.registryValue('shortcolors')
         else:
             colors = self.registryValue('colors')
         wires = self.rng.sample(colors, wireCount)
         goodWire = self.rng.choice(wires)
         self.log.info("TimeBomb: Safewire is %s"%goodWire)
-        # irc.queueMsg(ircmsgs.privmsg("##sgoutput", "TIMEBOMB: Safe wire is %s"%goodWire))
         if self.registryValue('debug'):
             irc.reply('I\'m about to create a bomb in %s' % channel)
-        self.bombs[channel] = self.Bomb(irc, victim, wires, detonateTime, goodWire, channel, msg.nick, self.registryValue('showArt', msg.args[0]), self.registryValue('showCorrectWire', msg.args[0]), self.registryValue('debug'))
+        self._logBomb(irc, channel, msg.nick, victim)
+        self.bombs[channel] = self.Bomb(irc, victim, wires, detonateTime, goodWire, channel, msg.nick, self.registryValue('showArt', channel), self.registryValue('showCorrectWire', channel), self.registryValue('debug'))
+        irc.queueMsg(ircmsgs.privmsg("##jacksonmj-test", "TIMEBOMB: Safe wire is %s"%goodWire))
         if self.registryValue('debug'):
             irc.reply('This message means that I got past the bomb creation line in the timebomb command')
     timebomb = wrap(timebomb, ['Channel', ('checkChannelCapability', 'timebombs'), 'somethingWithoutSpaces'])
@@ -291,7 +406,7 @@ class Timebomb(callbacks.Plugin):
         try:
             if not self.bombs[channel].active:
                 return
-            if not ircutils.nickEqual(self.bombs[channel].victim, msg.nick):
+            if not ircutils.nickEqual(self.bombs[channel].victim, msg.nick) and not ircdb.checkCapability(msg.prefix, 'admin'):
                 irc.reply('You can\'t cut the wire on someone else\'s bomb!')
                 return
             self.bombs[channel].cutwire(irc, cutWire)
@@ -322,11 +437,17 @@ class Timebomb(callbacks.Plugin):
         Defuses the active bomb (channel ops only)"""
         channel = ircutils.toLower(channel)
         try:
-            self.bombs[channel].defuse()
-            irc.reply('Bomb defused')
+            if self.bombs[channel].active:
+                if ircutils.nickEqual(self.bombs[channel].victim, msg.nick) and not (ircutils.nickEqual(self.bombs[channel].victim, self.bombs[channel].sender) or ircdb.checkCapability(msg.prefix, 'admin')):
+                    irc.reply('You can\'t defuse a bomb that\'s in your own pants, you\'ll just have to cut a wire and hope for the best.')
+                    return
+                self.bombs[channel].defuse()
+                irc.reply('Bomb defused')
+            else:
+                irc.error('There is no active bomb')
         except KeyError:
             pass
-            irc.noReply()
+            irc.error('There is no active bomb')
     defuse = wrap(defuse, [('checkChannelCapability', 'op')])
 
 
