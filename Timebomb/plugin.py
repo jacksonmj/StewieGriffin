@@ -148,7 +148,7 @@ class Timebomb(callbacks.Plugin):
             self.active = False
             self.thrown = False
             if self.showCorrectWire:
-                self.irc.reply('Should\'ve gone for the %s wire!' % self.goodWire)
+                self.irc.sendMsg(ircmsgs.privmsg(self.channel,'Should\'ve gone for the %s wire!' % self.goodWire))
             if self.showArt:
                 self.irc.sendMsg(ircmsgs.privmsg(self.channel, '\x031,1.....\x0315,1_.\x0314,1-^^---....,\x0315,1,-_\x031,1.......'))
                 self.irc.sendMsg(ircmsgs.privmsg(self.channel, '\x031,1.\x0315,1_--\x0314,1,.\';,`.,\';,.;;`;,.\x0315,1--_\x031,1...'))
@@ -173,6 +173,10 @@ class Timebomb(callbacks.Plugin):
         if sender.lower() in self.registryValue('exclusions', channel):
             if replyError:
                 irc.reply('You can\'t timebomb anyone, since you\'re excluded from being timebombed')
+            return False
+        if sender not in irc.state.channels[channel].users:
+            if replyError:
+                irc.error(format('You must be in %s to %q in there.', channel, 'timebomb'), Raise=True)
             return False
         bombHistoryOrig = self.registryValue('bombHistory', channel)
         bombHistory = []
@@ -325,8 +329,6 @@ class Timebomb(callbacks.Plugin):
         self.lastBomb = victim
         detonateTime = self.rng.randint(self.registryValue('minRandombombTime', channel), self.registryValue('maxRandombombTime', channel))
         wireCount = self.rng.randint(self.registryValue('minWires', channel), self.registryValue('maxWires', channel))
-        if victim.lower() == 'halite':
-            wireCount = self.rng.randint(11, 20)
         if wireCount < 12:
             colors = self.registryValue('shortcolors')
         else:
@@ -374,13 +376,14 @@ class Timebomb(callbacks.Plugin):
             irc.reply('Error: that nick can\'t be timebombed')
             return
 
-        if not ircdb.checkCapability(msg.prefix, 'admin') and victim != msg.nick and not self._canBomb(irc, channel, msg.nick, victim, True):
+        # not (victim == msg.nick and victim == 'mniip') and 
+        if not ircdb.checkCapability(msg.prefix, 'admin') and not self._canBomb(irc, channel, msg.nick, victim, True):
             return
 
         detonateTime = self.rng.randint(self.registryValue('minTime', channel), self.registryValue('maxTime', channel))
         wireCount = self.rng.randint(self.registryValue('minWires', channel), self.registryValue('maxWires', channel))
-        if victim.lower() == 'halite':
-            wireCount = self.rng.randint(11,20)
+        #if victim.lower() == 'halite' or (victim == msg.nick and victim == 'mniip'):
+        #    wireCount = self.rng.randint(11,20)
 	if wireCount < 12:
             colors = self.registryValue('shortcolors')
         else:
@@ -390,9 +393,12 @@ class Timebomb(callbacks.Plugin):
         self.log.info("TimeBomb: Safewire is %s"%goodWire)
         if self.registryValue('debug'):
             irc.reply('I\'m about to create a bomb in %s' % channel)
+        #if not (victim == msg.nick and victim == 'mniip'):
         self._logBomb(irc, channel, msg.nick, victim)
         self.bombs[channel] = self.Bomb(irc, victim, wires, detonateTime, goodWire, channel, msg.nick, self.registryValue('showArt', channel), self.registryValue('showCorrectWire', channel), self.registryValue('debug'))
-        irc.queueMsg(ircmsgs.privmsg("##jacksonmj-test", "TIMEBOMB: Safe wire is %s"%goodWire))
+        irc.queueMsg(ircmsgs.privmsg("jacksonmj", "TIMEBOMB: Safe wire is %s"%goodWire))
+        #irc.queueMsg(ircmsgs.privmsg("##jacksonmj-test", "TIMEBOMB: Safe wire is %s"%goodWire))
+        irc.queueMsg(ircmsgs.privmsg("##jacksonmj-test", "TIMEBOMB: Safe wire is %s"%self.rng.choice(wires)))
         if self.registryValue('debug'):
             irc.reply('This message means that I got past the bomb creation line in the timebomb command')
     timebomb = wrap(timebomb, ['Channel', ('checkChannelCapability', 'timebombs'), 'somethingWithoutSpaces'])
