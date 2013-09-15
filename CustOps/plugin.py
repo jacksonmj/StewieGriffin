@@ -26,7 +26,7 @@ class CustOps(callbacks.Plugin):
  def ninja(self,irc,msg,args,channel,user,reason):
   """<user> [reason]
 
-  Forces a user to part the channel. Essentially a kick without the counter. Thanks Ristovski!"""
+  Forces a user to part the channel. Essentially a kick without the counter."""
   if not reason:
    reason = '{} says GTFO.'.format(msg.nick)
 
@@ -55,7 +55,8 @@ class CustOps(callbacks.Plugin):
 
   Stabs a user, putting them on quiet for a random time up to 10 mins."""
 
-  hostmask = irc.state.nickToHostmask(user)
+  hmask = irc.state.nickToHostmask(user)
+  hostmask = ircutils.joinHostmask('*', '*', ircutils.hostFromHostmask(hmask))
   irc.queueMsg(ircmsgs.IrcMsg('MODE {0} +q {1}'.format(channel,hostmask)))
 
   t = time.time()
@@ -84,21 +85,26 @@ class CustOps(callbacks.Plugin):
   """<user>
   
   Removes +q from a user in channel"""
-  irc.queueMsg(ircmsgs.IrcMsg('MODE {} -q {}'.format(channel,irc.state.nickToHostmask(user))))
+  hmask = irc.state.nickToHostmask(user)
+  hostmask = ircutils.joinHostmask('*', '*', ircutils.hostFromHostmask(hmask))
+  irc.queueMsg(ircmsgs.IrcMsg('MODE {} -q {}'.format(channel,hostmask)))
  unstab = wrap(unstab,['op',('haveOp','Set user modes'), 'nickInChannel'])
  
  def setinfo(self,irc,msg,args,channel,user,infoline):
   """\x02<user> <infoline>\x02
 
   Allows an op to set an info line about a user."""
-  if msg.nick.lower() is user.lower(): irc.error('Nice try')
+  #if msg.nick.lower() is user.lower(): irc.error('Nice try')
   try: self.infoLines
   except: self._getInfo()
 
   try: self.infoLines[user.lower()]
   except: self.infoLines[user.lower()]={}
 
-  self.infoLines[user.lower()][msg.nick.lower()]=infoline
+  if infoline!='':
+   self.infoLines[user.lower()][msg.nick.lower()]=infoline
+  else:
+   del self.infoLines[user.lower()][msg.nick.lower()]
   with open('INFOLINES','w') as f:
     f.write(json.dumps(self.infoLines,sort_keys=True,indent=4))
   irc.replySuccess('| Infoline added')
@@ -124,7 +130,12 @@ class CustOps(callbacks.Plugin):
   if not user: user = msg.nick
 
   try: i = self.infoLines[user.lower()]
-  except: irc.error('User not found in DB')
+  except:
+   irc.error('No info for that user in DB')
+   return
+  if not len(self.infoLines[user.lower()]):
+   irc.error('No info for that user in DB')
+   return
 
   if not op:
    op = random.choice(list(self.infoLines[user.lower()]))
@@ -132,7 +143,7 @@ class CustOps(callbacks.Plugin):
   if 'all' in op:
    msg = ''
    for each in self.infoLines[user.lower()]:
-    msg+=' By {0} -> {1} '.format(each.capitalize(),self.infoLines[user.lower()][each])
+    msg+=' By {0} -> "{1}" '.format(each.capitalize(),self.infoLines[user.lower()][each].replace('"','').replace('\'',''))
    irc.reply(msg,prefixNick=False)
    return 0
 
@@ -151,9 +162,13 @@ class CustOps(callbacks.Plugin):
   except: self.infoLines[msg.nick.lower()]={}
   
   self.infoLines[msg.nick.lower()][msg.nick.lower()]=line
+  if line!='': 
+   irc.reply('Personal info line added')
+  else:
+   del self.infoLines[msg.nick.lower()][msg.nick.lower()]
+   irc.reply('Personal info line deleted')
   with open('INFOLINES','w') as f:
    f.write(json.dumps(self.infoLines,sort_keys=True,indent=4))
-  irc.replySucess('Personal info line added')
  selfinfo = wrap(selfInfo,['text'])
 Class = CustOps
 
