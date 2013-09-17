@@ -50,8 +50,8 @@ class CustOps(callbacks.Plugin):
 #  irc.queueMsg(ircmsgs.IrcMsg('MODE #powder -b {}$#powder-social'.format(irc.state.nickToHostmask(user))))
  social = wrap(social,['op',('haveOp','Evict a user to #powder-social'),'nickInChannel',optional('anything')])
 
- def stab(self,irc,msg,args,channel,user,timer):
-  """<user> [seconds]
+ def stab(self,irc,msg,args,channel,user,timer,reason):
+  """<user> [seconds] [reason (ignored)]
 
   Stabs a user, putting them on quiet for a random time up to 10 mins."""
 
@@ -79,7 +79,7 @@ class CustOps(callbacks.Plugin):
    irc.queueMsg(ircmsgs.IrcMsg('MODE {0} -q {1}'.format(channel,hostmask)))
   schedule.addEvent(f,expires)
   irc.noReply()
- stab = wrap(stab,['op',('haveOp','Quiet a user'),'nickInChannel',optional('int')])
+ stab = wrap(stab,['op',('haveOp','Quiet a user'),'nickInChannel',optional('int'), optional('text')])
 
  def unstab(self,irc,msg,args,channel,user):
   """<user>
