@@ -40,7 +40,7 @@ import json,random,urllib,re
 class Powder(callbacks.PluginRegexp):
 	"""Contains all sorts of random stuff."""
 	threaded = True
-	regexps = ['powderSnarfer','forumSnarfer']
+	unaddressedRegexps = ['powderSnarfer','forumSnarfer']
 	consolechannel = False
 	
 	def git(self, irc, msg, args, user, project, branch):
@@ -55,7 +55,7 @@ class Powder(callbacks.PluginRegexp):
 		user=user.lower()
 		branch=branch.lower()
 		if(user=="simon" or user=="isimon" or user=="ximon"):
-			user="FacialTurd"
+			user="simtr"
 		if user=="doxin":
 			user="dikzak"
 
@@ -105,11 +105,18 @@ class Powder(callbacks.PluginRegexp):
 #	dl = wrap(dl,['somethingWithoutSpaces',optional('somethingWithoutSpaces')])
 
 	def browse(self, irc, msg, args, ID, blurb):
-		"""<SaveID|URL>
+		"""<SaveID>
 
 			Returns information about a save."""
 		self._getSaveInfo(irc, ID, 0)
 	browse = wrap(browse,['somethingWithoutSpaces',optional('text')])
+
+	def oldbrowse(self, irc, msg, args, ID, blurb):
+		"""<SaveID>
+
+			Returns information about a save."""
+		self._getOldSaveInfo(irc, ID, 0)
+	oldbrowse = wrap(oldbrowse,['somethingWithoutSpaces',optional('text')])
 
 	def powderSnarfer(self, irc, msg, match):
 		r"http://powdertoy.co.uk/Browse/View.html\?ID=([0-9]+)|^[~]([0-9]+)|http://tpt.io/~([0-9]+)|http://powdertoy.co.uk/~([0-9]+)"
@@ -127,15 +134,31 @@ class Powder(callbacks.PluginRegexp):
 	powderSnarfer = urlSnarfer(powderSnarfer)
 
 	def _getSaveInfo(self, irc, ID, urlGiven):
+		ID = str(int(ID))
 		data = json.loads(utils.web.getUrl("http://powdertoy.co.uk/Browse/View.json?ID="+ID))
 		if(data["Username"]=="FourOhFour"):
 			saveMsg = "Save "+ID+" doesn't exist."
 		else:
 			saveMsg = "Save "+ID+" is "+data["Name"].replace('&#039;','\'').replace('&gt;','>')+" by "+data["Username"]+". Score: "+str(data["Score"])+"."
 			if(not urlGiven):
-				saveMsg+=" http://powdertoy.co.uk/~"+ID
+				saveMsg+=" http://tpt.io/~"+ID
 		irc.reply(saveMsg,prefixNick=False)
 		if(self.consolechannel): irc.queueMsg(ircmsgs.privmsg(self.consolechannel, "SAVE: %s"%saveMsg))
+
+	def _getOldSaveInfo(self, irc, ID, urlGiven):
+		ID = str(int(ID))
+		try:
+			data = json.loads(utils.web.getUrl("http://powdertoythings.co.uk/OldPowder/Browse/View.json?ID="+ID))
+		except:
+			irc.reply("Old save "+ID+" doesn't exist.",prefixNick=False)
+			return
+		if(not data or data["Username"]=="FourOhFour"):
+			saveMsg = "Old save "+ID+" doesn't exist."
+		else:
+			saveMsg = "Old save "+ID+" is "+data["Name"].replace('&#039;','\'').replace('&gt;','>')+" by "+data["Username"]+". Score: "+str(data["Score"])+"."
+			if(not urlGiven):
+				saveMsg+=" http://powdertoythings.co.uk/OldPowder/Saves/"+ID+".html"
+		irc.reply(saveMsg,prefixNick=False)
 
 	def frontpage(self,irc,msg,args):
 		"""
@@ -181,7 +204,7 @@ class Powder(callbacks.PluginRegexp):
 			userID = userPage.split("<a href=\"/User.html?ID=")[1].split("\"")[0];
 			userData = json.loads(utils.web.getUrl("http://powdertoy.co.uk/User.json?Name="+user))
 			uDu = userData['User']
-			irc.reply('http://powdertoy.co.uk/@{0} | ID {1} | Has {2} saves - Average score {3} - Highest score {4} | Posted {5} topics -  {6} posts - Has {7} reputation.'.format(user,userID,uDu['Saves']['Count'],uDu['Saves']['AverageScore'],uDu['Saves']['HighestScore'],uDu['Forum']['Topics'],uDu['Forum']['Replies'],uDu['Forum']['Reputation']), prefixNick=False)
+			irc.reply('http://tpt.io/@{0} | ID {1} | Has {2} saves - Average score {3} - Highest score {4} | Posted {5} topics -  {6} posts - Has {7} reputation.'.format(user,userID,uDu['Saves']['Count'],uDu['Saves']['AverageScore'],uDu['Saves']['HighestScore'],uDu['Forum']['Topics'],uDu['Forum']['Replies'],uDu['Forum']['Reputation']), prefixNick=False)
 
 		except Exception, e:
 			try:
@@ -189,7 +212,7 @@ class Powder(callbacks.PluginRegexp):
 				userName = userPage.split("<h1 class=\"SubmenuTitle\">")[1].split("</h1>")[0]
 				userData = json.loads(utils.web.getUrl("http://powdertoy.co.uk/User.json?ID="+user))
 				uDu = userData['User']
-				irc.reply('http://powdertoy.co.uk/@{1} | ID {0} | Has {2} saves - Average score {3} - Highest score {4} | Posted {5} topics -  {6} posts - Has {7} reputation.'.format(user,userName,uDu['Saves']['Count'],uDu['Saves']['AverageScore'],uDu['Saves']['HighestScore'],uDu['Forum']['Topics'],uDu['Forum']['Replies'],uDu['Forum']['Reputation']), prefixNick=False)
+				irc.reply('http://tpt.io/@{1} | ID {0} | Has {2} saves - Average score {3} - Highest score {4} | Posted {5} topics -  {6} posts - Has {7} reputation.'.format(user,userName,uDu['Saves']['Count'],uDu['Saves']['AverageScore'],uDu['Saves']['HighestScore'],uDu['Forum']['Topics'],uDu['Forum']['Replies'],uDu['Forum']['Reputation']), prefixNick=False)
 
 			except Exception, e:
 				irc.reply("User or ID doesn't exist - or Xeno screwed it again... {}".format(e))
@@ -205,18 +228,16 @@ class Powder(callbacks.PluginRegexp):
 		
 		Replies with a link to the github network page for the Powder Toy repo
 		"""
-		irc.reply("https://github.com/facialturd/The-Powder-Toy/network");
+		irc.reply("https://github.com/simtr/The-Powder-Toy/network");
 	network = wrap(network)
 
 	def randomsave(self,irc,msg,args):
 		"""
 
 		Returns a random save from powdertoy.co.uk"""
-		random.seed()
-		random.seed(random.random())
 		found = False
 		while found is False:
-			saveID = str(int(random.random()*1000000))
+			saveID = str(json.loads(utils.web.getUrl("http://powdertoythings.co.uk/Powder/Saves/Random.json?Count=1"))['Saves'][0]['ID'])
 			page = json.loads(utils.web.getUrl("http://powdertoy.co.uk/Browse/View.json?ID="+saveID))
 			if(page["Username"]!="FourOhFour"):
 				found = True
@@ -229,15 +250,19 @@ class Powder(callbacks.PluginRegexp):
 		
 		Returns latest comic number and name."""
 		try:
-			data = utils.web.getUrl("http://cate.superdoxin.com/")
+			try:
+				data = utils.web.getUrl("http://cate.superdoxin.com/")
+			except:
+				irc.error("Could not access comics website")
+				return
 			match = None
-			for match in re.finditer(r" href=\"(([0-9]+)([^\"]+))\"", data):
+			for match in re.finditer(r" href=\"http://superdoxin.com/static/cate/files/(([0-9]+)([^\"]+))\"", data):
 				pass
 			filename = match.group(1)
 			num = match.group(2)
 			name = match.group(3)
 			
-			irc.reply("Latest comic id is {} and is titled {} - http://cate.superdoxin.com/{}".format(num,name,filename))
+			irc.reply("Latest comic id is {} and is titled {} - http://www.superdoxin.com/static/cate/files/{}".format(num,name,filename))
 		except:
 			irc.error("Comic checker is broken, use $bug comic")
 	comic = wrap(comic)
