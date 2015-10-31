@@ -41,68 +41,6 @@ class Powder(callbacks.PluginRegexp):
 	"""Contains all sorts of random stuff."""
 	threaded = True
 	unaddressedRegexps = ['powderSnarfer','forumSnarfer']
-	consolechannel = False
-	
-	def git(self, irc, msg, args, user, project, branch):
-		"""<username> [project] [branch]
-
-		Returns information about a user GitHub Repo. Project and branch arguments are optional. Defaults to the-powder-toy/master if no other arguments are given. Arguments are CaSe-SeNsItIvE"""
-
-		if(not(branch)):
-			branch="master";
-		if(not(project)):
-			project="The-Powder-Toy"
-		user=user.lower()
-		branch=branch.lower()
-		if(user=="simon" or user=="isimon" or user=="ximon"):
-			user="simtr"
-		if user=="doxin":
-			user="dikzak"
-
-		giturl = "https://api.github.com/repos/{}/{}/branches/{}".format(user,project,branch)
-		try:
-			data = json.loads(utils.web.getUrl(giturl))
-		except:
-			try:
-				branch = project
-				project = "The-Powder-Toy"
-				giturl = "https://api.github.com/repos/{}/{}/branches/{}".format(user,project,branch)
-				data = json.loads(utils.web.getUrl(giturl))
-			except:
-				irc.error("HTTP 404. Please check and try again.", prefixNick=False)
-				if(self.consolechannel): irc.queueMsg(ircmsgs.privmsg(self.consolechannel, "GIT: Returned 404 on %s:%s"%(user,branch)))
-				return
-		data = data['commit']['commit']
-
-		data["committer"]["date"] = data["committer"]["date"].split("T")
-		data["message"] = data["message"].replace("\n"," ") 
-		data["message"] = data["message"].replace("	"," ")
-
-		if(self.consolechannel): irc.queueMsg(ircmsgs.privmsg(self.consolechannel, "GIT: user:%s project:%s branch:%s called by %s sucessfully."%(user,project,branch,msg.nick)))
-		irc.reply("Last commit to %s's %s repo, %s branch, was by %s on %s at %s. Commit message was \"%s\" - https://github.com/%s/%s/tree/%s"%(user,project,branch,data["committer"]["name"],data["committer"]["date"][0],data["committer"]["date"][1],data["message"],user,project,branch), prefixNick=False)
-
-
-	git = wrap(git,['somethingWithoutSpaces',optional('somethingWithoutSpaces'),optional('somethingwithoutspaces')])
-
-	def dl(self, irc, msg, args, ver, sse):
-		"""<win|lin|sdl|bz2> <sse|sse2|sse3>
-
-			Provides download links for AntB's Mod"""
-
-		if(ver=="sdl" or ver=="bz2"):
-			irc.reply("http://tinyurl.com/"+ver+"dll")
-
-		if(not(sse)):
-			sse="2"
-		if(sse=="sse"):
-			sse=" "
-
-		if(ver=="win"):
-			irc.reply("http://tinyurl.com/ab-powder"+sse[-1])
-
-		if(ver=="lin"):
-			irc.reply("http://tinyurl.com/ab-tpt-lin"+sse[-1])
-#	dl = wrap(dl,['somethingWithoutSpaces',optional('somethingWithoutSpaces')])
 
 	def browse(self, irc, msg, args, ID, blurb):
 		"""<SaveID>
@@ -143,7 +81,6 @@ class Powder(callbacks.PluginRegexp):
 			if(not urlGiven):
 				saveMsg+=" http://tpt.io/~"+ID
 		irc.reply(saveMsg,prefixNick=False)
-		if(self.consolechannel): irc.queueMsg(ircmsgs.privmsg(self.consolechannel, "SAVE: %s"%saveMsg))
 
 	def _getOldSaveInfo(self, irc, ID, urlGiven):
 		ID = str(int(ID))
@@ -191,7 +128,6 @@ class Powder(callbacks.PluginRegexp):
 
 		irc.reply("Forum post is \"%s\" in the %s section, posted by %s and has %s replies. Last post was by %s at %s"%
 				(tp["Title"],cg["Name"],tp["Author"],tp["PostCount"]-1,tp["LastPoster"],tp["Date"]),prefixNick=False)
-		if(self.consolechannel): irc.queueMsg(ircmsgs.privmsg(self.consolechannel, "FORUMSNARF: Thread %s found. %s in the %s section"%(threadNum,tp["Title"],cg["Name"])))
 	forumSnarfer = urlSnarfer(forumSnarfer)
 
 	def profile(self, irc, msg, args, user):
@@ -221,15 +157,6 @@ class Powder(callbacks.PluginRegexp):
 			return None
 
 	profile = wrap(profile,['something'])
-
-
-	def network(self, irc, msg, args):
-		"""
-		
-		Replies with a link to the github network page for the Powder Toy repo
-		"""
-		irc.reply("https://github.com/simtr/The-Powder-Toy/network");
-	network = wrap(network)
 
 	def randomsave(self,irc,msg,args):
 		"""
