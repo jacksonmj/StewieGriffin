@@ -29,7 +29,7 @@ NoBotCommands = conf.registerPlugin('NoBotCommands')
 conf.registerChannelValue(NoBotCommands, 'badPrefix',
     registry.Regexp(r'/^([^a-zA-Z0-9]+)/', _("""Regex to match the beginning of a line which will trigger other bots""")))
 conf.registerChannelValue(NoBotCommands, 'badSuffix',
-    registry.Regexp('/(\s+moo+)+$/', _("""Regex to match the end of a line which will trigger other bots""")))
+    registry.Regexp('/$/', _("""Regex to match the end of a line which will trigger other bots""")))
 
 
 
